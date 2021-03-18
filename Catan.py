@@ -232,7 +232,12 @@ while VictoryCondition(p1, Ledger) == False:
             print('Unexpected error...')
         break
 
+print('\n\nwon the game')
+print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
+print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
+print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
+print('', p1.resourceCards)
 
 #print(vars(p1))
-print(sum(p1.resourceCards.values()), ' Resource cards is required using this strategy')
+print('\n\n', sum(p1.resourceCards.values()), ' Resource cards is required using this strategy')
 #print((p1.villages * Ledger.villageSettlement) + (p1.cities * Ledger.citySettlement))
