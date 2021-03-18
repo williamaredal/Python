@@ -1,6 +1,7 @@
 from collections import Counter
 # Figuring out the roads to victory requiring the minimum number of cards to achieve victory in catan
 # TODO write part about development cards
+
 class Ledger:
     victoryPointCondition = 10
     villageSettlement = 1
@@ -9,12 +10,16 @@ class Ledger:
     startVillages = 2 
     startCities = 0
     startRoads = 2
+    startDevCards = 0
     maxVillages = 5
     maxCities  = 4
     maxRoads = 15
+    maxDevCards = 25
 
-    longestRoad = {'requirement': 5, 'points' : 2}
-    largestArmy = {'requirement': 3, 'points' : 2}
+    villageSpacingRequirement = 2
+
+    longestRoad = {'requirement': 5, 'points' : 2} # minimum requirement is 5 connected
+    largestArmy = {'requirement': 5, 'points' : 2} # minimum requirement is 3 knights, statistically you will need to draw 5 to get 3 knights
 
     constructionCosts ={
         'village' : {'wood' : 1, 'sheep' : 1, 'wheat' : 1, 'brick' : 1},
@@ -27,7 +32,7 @@ class Ledger:
 
 class Player:
 
-    def __init__(self, resourceCards, villages, availableVillages, cities, availableCities, roads, availableRoads, longestRoad, largestArmy):
+    def __init__(self, resourceCards, villages, availableVillages, cities, availableCities, roads, availableRoads, devCards, availableDevCards, longestRoad, largestArmy):
         self.resourceCards = resourceCards
         self.villages = villages
         self.availableVillages = availableVillages
@@ -35,6 +40,8 @@ class Player:
         self.availableCities = availableCities
         self.roads = roads
         self.availableRoads = availableRoads
+        self.devCards = devCards
+        self.availableDevCards = availableDevCards
         self.longestRoad = longestRoad
         self.largestArmy = largestArmy
     
@@ -53,9 +60,90 @@ class Player:
         self.roads = roads
         self.availableRoads = availableRoads
     
+    def updateDevCards(self, devCards, availableDevCards):
+        self.devCards = devCards
+        self.availableDevCards = availableDevCards
+    
     def updateSpecialCard(self, longestRoad, largestArmy):
         self.longestRoad = longestRoad
         self.largestArmy = largestArmy
+
+
+
+
+def VictoryCondition(player, ledger):
+    requiredScore = ledger.victoryPointCondition
+    playerScore = (
+        (player.villages * ledger.villageSettlement) +
+        (player.cities * ledger.citySettlement) +
+        (player.longestRoad * ledger.longestRoad['points']) + 
+        (player.largestArmy * ledger.largestArmy['points'])
+    )
+
+    if playerScore < requiredScore:
+        return False
+    elif playerScore >= requiredScore:
+        return True
+    else:
+        print('Point VictoryCondition met an error')
+
+
+def BuildRoad(player, ledger):
+    player.updateResources(
+        Counter(player.resourceCards) +
+        Counter(ledger.constructionCosts['road'])
+        )
+    player.updateRoads(
+        player.roads + 1,  
+        player.availableRoads - 1
+        )
+
+
+def BuildVillage(player, ledger):
+    player.updateResources(
+        Counter(player.resourceCards) +
+        Counter(ledger.constructionCosts['village'])
+        )
+    player.updateVillages(
+        player.villages + 1,
+        player.availableVillages - 1
+        )
+
+
+def BuildCity(player, ledger):
+    player.updateResources(
+        Counter(player.resourceCards) + 
+        Counter(ledger.constructionCosts['city'])
+    )
+    player.updateCities(
+        player.cities + 1,
+        player.availableCities - 1
+    )
+    player.updateVillages(
+        player.villages - 1,
+        player.availableVillages + 1
+    )
+
+
+def BuyDevCard(player, ledger):
+    player.updateResources(
+        Counter(player.resourceCards) +
+        Counter(ledger.constructionCosts['development'])
+    )
+    player.updateDevCards(
+        player.devCards + 1,
+        player.availableDevCards - 1 
+    )
+
+
+def SetSpecialCard(player, ledger):
+    if player.roads >= (ledger.longestRoad['requirement'] - (ledger.startRoads / ledger.startVillages)) and player.longestRoad == False:
+        player.updateSpecialCard(True, player.largestArmy)
+    if player.devCards >= (ledger.largestArmy['requirement']) and player.largestArmy == False:
+        player.updateSpecialCard(player.longestRoad, True)
+    else:
+        return None
+
 
 
 spentResources = {'wood' : 0, 'sheep' : 0, 'wheat' : 0, 'brick' : 0, 'ore' : 0}
@@ -68,6 +156,8 @@ p1 = Player(
     Ledger.maxCities - Ledger.startCities,
     Ledger.startRoads,
     Ledger.maxRoads - Ledger.startRoads,
+    Ledger.startDevCards,
+    Ledger.maxDevCards - Ledger.startDevCards,
     False, 
     False
     )
@@ -75,92 +165,59 @@ p1 = Player(
 
 print(vars(p1))
 count = 0
+# TODO remove this test
+print(str(Ledger.longestRoad['requirement'] - (Ledger.startRoads / 2)))
 
-while (
-    (p1.villages * Ledger.villageSettlement) +
-    (p1.cities * Ledger.citySettlement) +
-    (p1.longestRoad * Ledger.longestRoad['points']) + 
-    (p1.largestArmy * Ledger.largestArmy['points'])
-    ) < Ledger.victoryPointCondition:
-    count += 1
+
+while VictoryCondition(p1, Ledger) == False:
     print('\n\n\ncount: ', count, '\nvictory points: ', int(p1.villages * Ledger.villageSettlement) + (p1.cities * Ledger.citySettlement))
+    SetSpecialCard(p1, Ledger)
 
-    if p1.roads >= 6 and p1.longestRoad == False:
-        p1.updateSpecialCard(True, p1.largestArmy)
-
-    if p1.availableVillages > 0 and p1.availableRoads >= 2:
-
+    if p1.availableVillages > 0 and p1.availableRoads >= Ledger.villageSpacingRequirement:
         # VILLAGE AFTER BUILDING 1 ROAD
-        if p1.roads > 2 and p1.roads <= 4:
-            p1.updateResources(
-                Counter(p1.resourceCards) +
-                Counter(Ledger.constructionCosts['road'])
-                )
-            p1.updateRoads(
-                p1.roads + 1,  
-                p1.availableRoads - 1
-                )
+        if p1.roads > Ledger.villageSpacingRequirement and p1.roads <= (Ledger.villageSpacingRequirement * 2):
+            BuildRoad(p1, Ledger)
+            BuildVillage(p1, Ledger)
     
-            p1.updateResources(
-                Counter(p1.resourceCards) +
-                Counter(Ledger.constructionCosts['village'])
-                )
-            p1.updateVillages(
-                p1.villages + 1,
-                p1.availableVillages - 1
-                )
-                
         # VILLAGE AFTER BUILDING 2 ROADS
         else:
-            for n in range(0,2):
-                p1.updateResources(
-                    Counter(p1.resourceCards) +
-                    Counter(Ledger.constructionCosts['road'])
-                    )
-                p1.updateRoads(
-                    p1.roads + 1,
-                    p1.availableRoads - 1
-                    )
+            for r in range(0, Ledger.villageSpacingRequirement):
+                BuildRoad(p1, Ledger)
 
-            p1.updateResources(
-                Counter(p1.resourceCards) +
-                Counter(Ledger.constructionCosts['village'])
-            )
-            p1.updateVillages(
-                p1.villages + 1,
-                p1.availableVillages - 1
-            )
+            BuildVillage(p1, Ledger)
+
         print('\nbuilt a village')
         print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
         print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
+        print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
         print('', p1.resourceCards)
 
 
     # CITY
     elif p1.availableCities > 0:
-        p1.updateResources(
-            Counter(p1.resourceCards) + 
-            Counter(Ledger.constructionCosts['city'])
-        )
-        p1.updateCities(
-            p1.cities + 1,
-            p1.availableCities - 1
-        )
-        p1.updateVillages(
-            p1.villages - 1,
-            p1.availableVillages + 1
-        )
+        BuildCity(p1, Ledger)
+
         print('\nbuilt a city')
         print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
         print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
+        print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
+        print('', p1.resourceCards)
+    
+    # DEVCARD
+    elif p1.availableDevCards > 0:
+        BuyDevCard(p1, Ledger)
+
+        print('\nbought a devCard')
+        print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
+        print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
+        print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
         print('', p1.resourceCards)
 
     # COULD NOT BUILD MORE VICTORY POINTS
     else:
         print('something went wrong XD')
-        print(p1.availableRoads)
 
-        if p1.availableRoads < 2:
+        if p1.availableRoads < Ledger.villageSpacingRequirement:
             print('Not enough roads available')
         elif p1.availableVillages < 1 and p1.availableCities < 1:
             print('No available villages or cities')
@@ -168,6 +225,8 @@ while (
             print('No available villages')
         elif p1.availableCities < 1:
             print('No available cities')
+        elif p1.availableDevCards < 1:
+            print('No available devCards')
 
         else:
             print('Unexpected error...')
