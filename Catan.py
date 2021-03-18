@@ -1,7 +1,11 @@
 from collections import Counter
-# Figuring out the roads to victory requiring the minimum number of cards to achieve victory in catan
-# TODO write part about development cards
+from tqdm import tqdm
+from random import choice
 
+# Figuring out the roads to victory requiring the minimum number of cards to achieve victory in catan
+# TODO sort the dictionaries directly by value key pair 'cardsToVictory'
+# figure out how many possible combinations the three choices can produce so that i can get an accurate sample
+ 
 class Ledger:
     victoryPointCondition = 10
     villageSettlement = 1
@@ -27,6 +31,8 @@ class Ledger:
         'road' : {'wood' : 1, 'brick' : 1},
         'development' : {'sheep' : 1, 'wheat' : 1, 'ore' : 1}
     }
+
+    initialResourceUsage = {'wood' : 0, 'sheep' : 0, 'wheat' : 0, 'brick' : 0, 'ore' : 0}
 
 
 
@@ -88,6 +94,16 @@ def VictoryCondition(player, ledger):
         print('Point VictoryCondition met an error')
 
 
+def PlayerScore(player, ledger):
+    playerScore = int(
+        (player.villages * ledger.villageSettlement) +
+        (player.cities * ledger.citySettlement) +
+        (player.longestRoad * ledger.longestRoad['points']) + 
+        (player.largestArmy * ledger.largestArmy['points'])
+    )
+    return playerScore
+
+
 def BuildRoad(player, ledger):
     player.updateResources(
         Counter(player.resourceCards) +
@@ -146,98 +162,104 @@ def SetSpecialCard(player, ledger):
 
 
 
-spentResources = {'wood' : 0, 'sheep' : 0, 'wheat' : 0, 'brick' : 0, 'ore' : 0}
-
-p1 = Player(
-    spentResources,
-    Ledger.startVillages,
-    Ledger.maxVillages - Ledger.startVillages,
-    Ledger.startCities,
-    Ledger.maxCities - Ledger.startCities,
-    Ledger.startRoads,
-    Ledger.maxRoads - Ledger.startRoads,
-    Ledger.startDevCards,
-    Ledger.maxDevCards - Ledger.startDevCards,
-    False, 
-    False
-    )
 
 
-print(vars(p1))
-count = 0
-# TODO remove this test
-print(str(Ledger.longestRoad['requirement'] - (Ledger.startRoads / 2)))
+numberOfSimulations = 10000
+simulatedGames = {}
 
+with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') as pbar:
 
-while VictoryCondition(p1, Ledger) == False:
-    print('\n\n\ncount: ', count, '\nvictory points: ', int(p1.villages * Ledger.villageSettlement) + (p1.cities * Ledger.citySettlement))
-    SetSpecialCard(p1, Ledger)
+    for s in range(numberOfSimulations):
+        
+        p1 = Player(
+            Ledger.initialResourceUsage,
+            Ledger.startVillages,
+            Ledger.maxVillages - Ledger.startVillages,
+            Ledger.startCities,
+            Ledger.maxCities - Ledger.startCities,
+            Ledger.startRoads,
+            Ledger.maxRoads - Ledger.startRoads,
+            Ledger.startDevCards,
+            Ledger.maxDevCards - Ledger.startDevCards,
+            False, 
+            False
+            )
 
-    if p1.availableVillages > 0 and p1.availableRoads >= Ledger.villageSpacingRequirement:
-        # VILLAGE AFTER BUILDING 1 ROAD
-        if p1.roads > Ledger.villageSpacingRequirement and p1.roads <= (Ledger.villageSpacingRequirement * 2):
-            BuildRoad(p1, Ledger)
-            BuildVillage(p1, Ledger)
-    
-        # VILLAGE AFTER BUILDING 2 ROADS
-        else:
-            for r in range(0, Ledger.villageSpacingRequirement):
-                BuildRoad(p1, Ledger)
+        
+        while VictoryCondition(p1, Ledger) == False:
 
-            BuildVillage(p1, Ledger)
+            possibleChoices = [c for c in range(1,4) if
+                c == 1 and p1.availableVillages > 0 and p1.availableRoads >= Ledger.villageSpacingRequirement
+                or c == 2 and p1.availableCities > 0
+                or c == 3 and p1.availableDevCards > 0
+                ]
+            randomDecision = choice(possibleChoices)
+            SetSpecialCard(p1, Ledger)
 
-        print('\nbuilt a village')
-        print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
-        print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
-        print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
-        print('', p1.resourceCards)
+            # VILLAGE
+            if randomDecision == 1:
+                # VILLAGE AFTER BUILDING 1 ROAD
+                if p1.roads > Ledger.villageSpacingRequirement and p1.roads <= (Ledger.villageSpacingRequirement * 2):
+                    BuildRoad(p1, Ledger)
+                    BuildVillage(p1, Ledger)
+            
+                # VILLAGE AFTER BUILDING 2 ROADS
+                else:
+                    for r in range(0, Ledger.villageSpacingRequirement):
+                        BuildRoad(p1, Ledger)
 
+                    BuildVillage(p1, Ledger)
 
-    # CITY
-    elif p1.availableCities > 0:
-        BuildCity(p1, Ledger)
+            # CITY
+            elif randomDecision == 2:
+                BuildCity(p1, Ledger)
 
-        print('\nbuilt a city')
-        print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
-        print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
-        print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
-        print('', p1.resourceCards)
-    
-    # DEVCARD
-    elif p1.availableDevCards > 0:
-        BuyDevCard(p1, Ledger)
+            # DEVCARD
+            elif randomDecision == 3:
+                BuyDevCard(p1, Ledger)
 
-        print('\nbought a devCard')
-        print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
-        print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
-        print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
-        print('', p1.resourceCards)
+            # COULD NOT BUILD MORE VICTORY POINTS
+            else:
+                print('something went wrong XD')
 
-    # COULD NOT BUILD MORE VICTORY POINTS
-    else:
-        print('something went wrong XD')
+                if p1.availableRoads < Ledger.villageSpacingRequirement:
+                    print('Not enough roads available')
+                elif p1.availableVillages < 1 and p1.availableCities < 1:
+                    print('No available villages or cities')
+                elif p1.villages < 1:
+                    print('No available villages')
+                elif p1.availableCities < 1:
+                    print('No available cities')
+                elif p1.availableDevCards < 1:
+                    print('No available devCards')
 
-        if p1.availableRoads < Ledger.villageSpacingRequirement:
-            print('Not enough roads available')
-        elif p1.availableVillages < 1 and p1.availableCities < 1:
-            print('No available villages or cities')
-        elif p1.villages < 1:
-            print('No available villages')
-        elif p1.availableCities < 1:
-            print('No available cities')
-        elif p1.availableDevCards < 1:
-            print('No available devCards')
+                else:
+                    print('Unexpected error...')
+                break
+            
+        simulatedGames[s] = {
+            'victoryPoints' : PlayerScore(p1, Ledger),
+            'cardsToVictory' : sum(p1.resourceCards.values()),
+            'spentResources' : p1.resourceCards,
+            'villages' : p1.villages,
+            'availableVillages' : p1.availableVillages,
+            'cities' : p1.cities,
+            'availableCities' : p1.availableCities,
+            'roads' : p1.roads,
+            'availableRoads' : p1.availableRoads,
+            'devCards' : p1.devCards,
+            'availableDevCards' : p1.availableDevCards,
+            'longestRoad' : p1.longestRoad,
+            'largestArmy' : p1.largestArmy
+            }
 
-        else:
-            print('Unexpected error...')
-        break
+        pbar.update(1)
+        
 
-print('\n\nwon the game')
-print(' p1 cities: ', p1.cities, '\n available cities: ', p1.availableCities)
-print('\n p1 villages: ',p1.villages, '\n available villages: ', p1.availableVillages)
-print(' p1 devCards: ', p1.devCards, '\n available devCards: ', p1.availableDevCards)
-print('', p1.resourceCards)
+# Temp
+lowestCardDistance = []
+for s in simulatedGames:
+    lowestCardDistance.append(simulatedGames[s]['cardsToVictory'])
 
-#print(vars(p1))
-print('\n\n', sum(p1.resourceCards.values()), ' Resource cards is required using this strategy')
-#print((p1.villages * Ledger.villageSettlement) + (p1.cities * Ledger.citySettlement))
+lowestCardDistance.sort()
+print(lowestCardDistance)
