@@ -1,6 +1,7 @@
 from collections import Counter
 from tqdm import tqdm
 from random import choice
+from matplotlib import pyplot as plt
 
 # Figuring out the roads to victory requiring the minimum number of cards to achieve victory in catan
 # TODO sort the dictionaries directly by value key pair 'cardsToVictory'
@@ -171,6 +172,7 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
 
     for s in range(numberOfSimulations):
         
+        p1DecisionTree = []
         p1 = Player(
             Ledger.initialResourceUsage,
             Ledger.startVillages,
@@ -190,11 +192,12 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
 
             possibleChoices = [c for c in range(1,4) if
                 c == 1 and p1.availableVillages > 0 and p1.availableRoads >= Ledger.villageSpacingRequirement
-                or c == 2 and p1.availableCities > 0
+                or c == 2 and p1.availableCities > 0 and p1.villages > 0
                 or c == 3 and p1.availableDevCards > 0
                 ]
             randomDecision = choice(possibleChoices)
             SetSpecialCard(p1, Ledger)
+            p1DecisionTree.append(randomDecision)
 
             # VILLAGE
             if randomDecision == 1:
@@ -238,6 +241,7 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
                 break
             
         simulatedGames[s] = {
+            'decisionTree' : p1DecisionTree,
             'victoryPoints' : PlayerScore(p1, Ledger),
             'cardsToVictory' : sum(p1.resourceCards.values()),
             'spentResources' : p1.resourceCards,
@@ -255,7 +259,16 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
 
         pbar.update(1)
         
+# TESTS
+for s in simulatedGames:
+    print(simulatedGames[s])
+    break
+    
 
+plt.scatter([s for s in simulatedGames], [simulatedGames[s]['cardsToVictory'] for s in simulatedGames], color="blue", alpha=0.5)
+
+plt.show()
+'''
 # Temp
 lowestCardDistance = []
 for s in simulatedGames:
@@ -263,3 +276,4 @@ for s in simulatedGames:
 
 lowestCardDistance.sort()
 print(lowestCardDistance)
+'''
