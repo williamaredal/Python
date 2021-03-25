@@ -3,6 +3,8 @@ from tqdm import tqdm
 from random import choice
 from matplotlib import pyplot as plt
 
+import operator
+
 # Figuring out the roads to victory requiring the minimum number of cards to achieve victory in catan
 # TODO sort the dictionaries directly by value key pair 'cardsToVictory'
 # figure out how many possible combinations the three choices can produce so that i can get an accurate sample
@@ -258,22 +260,14 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
             }
 
         pbar.update(1)
-        
-# TESTS
-for s in simulatedGames:
-    print(simulatedGames[s])
-    break
-    
+
+
+
+sorted_tuples = sorted(simulatedGames.items(), key=lambda x: operator.getitem(x[1], 'cardsToVictory'))
+orderedSimulations = dict(s for s in sorted_tuples)   
+
+
 
 plt.scatter([s for s in simulatedGames], [simulatedGames[s]['cardsToVictory'] for s in simulatedGames], color="blue", alpha=0.5)
 
 plt.show()
-'''
-# Temp
-lowestCardDistance = []
-for s in simulatedGames:
-    lowestCardDistance.append(simulatedGames[s]['cardsToVictory'])
-
-lowestCardDistance.sort()
-print(lowestCardDistance)
-'''
