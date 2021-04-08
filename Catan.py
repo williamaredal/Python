@@ -3,6 +3,7 @@ from tqdm import tqdm
 from random import choice
 from matplotlib import pyplot as plt
 
+import numpy as np
 import operator
 
 # Figuring out the roads to victory requiring the minimum number of cards to achieve victory in catan
@@ -17,16 +18,15 @@ class Ledger:
     startVillages = 2 
     startCities = 0
     startRoads = 2
-    startDevCards = 0
+    startDevCards = []
     maxVillages = 5
     maxCities  = 4
     maxRoads = 15
-    maxDevCards = 25
 
     villageSpacingRequirement = 2
 
-    longestRoad = {'requirement': 5, 'points' : 2} # minimum requirement is 5 connected
-    largestArmy = {'requirement': 5, 'points' : 2} # minimum requirement is 3 knights, statistically you will need to draw 5 to get 3 knights
+    longestRoad = {'requirement': 5, 'points' : 2} # minimum requirement is 5 connected roads
+    largestArmy = {'requirement': 3, 'points' : 2} # minimum requirement is 3 knights
 
     constructionCosts ={
         'village' : {'wood' : 1, 'sheep' : 1, 'wheat' : 1, 'brick' : 1},
@@ -36,6 +36,7 @@ class Ledger:
     }
 
     initialResourceUsage = {'wood' : 0, 'sheep' : 0, 'wheat' : 0, 'brick' : 0, 'ore' : 0}
+    developmentCards = ['k' for n in range(14)] + ['v' for n in range(5)] + ['i' for n in range(6)]
 
 
 
@@ -82,12 +83,17 @@ class Player:
 
 def VictoryCondition(player, ledger):
     requiredScore = ledger.victoryPointCondition
-    playerScore = (
+    playerScore = int(
         (player.villages * ledger.villageSettlement) +
         (player.cities * ledger.citySettlement) +
         (player.longestRoad * ledger.longestRoad['points']) + 
         (player.largestArmy * ledger.largestArmy['points'])
     )
+    try:
+        playerScore += player.devCards.count('v')
+
+    except TypeError:
+        return
 
     if playerScore < requiredScore:
         return False
@@ -145,21 +151,26 @@ def BuildCity(player, ledger):
 
 
 def BuyDevCard(player, ledger):
+    devCardDraw = list(np.random.choice(player.availableDevCards, 1, ))
+    remainingDevCards = player.availableDevCards
+    remainingDevCards.remove(devCardDraw[0])
+
     player.updateResources(
         Counter(player.resourceCards) +
         Counter(ledger.constructionCosts['development'])
     )
     player.updateDevCards(
-        player.devCards + 1,
-        player.availableDevCards - 1 
+        (player.devCards + devCardDraw),
+        remainingDevCards
     )
 
 
+
 def SetSpecialCard(player, ledger):
-    if player.roads >= (ledger.longestRoad['requirement'] - (ledger.startRoads / ledger.startVillages)) and player.longestRoad == False:
-        player.updateSpecialCard(True, player.largestArmy)
-    if player.devCards >= (ledger.largestArmy['requirement']) and player.largestArmy == False:
-        player.updateSpecialCard(player.longestRoad, True)
+    if (player.roads - (ledger.startRoads / ledger.startVillages)) >= (ledger.longestRoad['requirement']) and player.longestRoad == False:
+        player.updateSpecialCard(True, player.longestRoad)
+    if len(player.devCards) != 0 and player.devCards.count('k') >= (ledger.largestArmy['requirement']) and player.largestArmy == False:
+        player.updateSpecialCard(player.largestArmy, True)
     else:
         return None
 
@@ -184,8 +195,8 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
             Ledger.startRoads,
             Ledger.maxRoads - Ledger.startRoads,
             Ledger.startDevCards,
-            Ledger.maxDevCards - Ledger.startDevCards,
-            False, 
+            Ledger.developmentCards,
+            False,
             False
             )
 
@@ -195,7 +206,7 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
             possibleChoices = [c for c in range(1,4) if
                 c == 1 and p1.availableVillages > 0 and p1.availableRoads >= Ledger.villageSpacingRequirement
                 or c == 2 and p1.availableCities > 0 and p1.villages > 0
-                or c == 3 and p1.availableDevCards > 0
+                or c == 3 and len(p1.availableDevCards) > 0
                 ]
             randomDecision = choice(possibleChoices)
             SetSpecialCard(p1, Ledger)
@@ -241,7 +252,7 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
                 else:
                     print('Unexpected error...')
                 break
-            
+
         simulatedGames[s] = {
             'decisionTree' : p1DecisionTree,
             'victoryPoints' : PlayerScore(p1, Ledger),
