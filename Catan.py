@@ -7,42 +7,75 @@ import numpy as np
 import operator
 
 # Figuring out the roads to victory requiring the minimum number of cards to achieve victory in catan
-# TODO sort the dictionaries directly by value key pair 'cardsToVictory'
-# figure out how many possible combinations the three choices can produce so that i can get an accurate sample
+
  
 class Ledger:
-    victoryPointCondition = 10
-    villageSettlement = 1
-    citySettlement = 2
-    
-    startVillages = 2 
-    startCities = 0
-    startRoads = 2
-    startDevCards = []
-    maxVillages = 5
-    maxCities  = 4
-    maxRoads = 15
-
-    villageSpacingRequirement = 2
-
-    longestRoad = {'requirement': 5, 'points' : 2} # minimum requirement is 5 connected roads
-    largestArmy = {'requirement': 3, 'points' : 2} # minimum requirement is 3 knights
-
-    constructionCosts ={
+    def __init__(
+    self,
+    victoryPointCondition=10,
+    villageSettlement=1,
+    citySettlement=2,
+    startVillages=2,
+    startCities=0,
+    startRoads=2,
+    startDevCards=[],
+    maxVillages=5,
+    maxCities=4,
+    maxRoads=15,
+    villageSpacingRequirement=2,
+    longestRoad={'requirement': 5, 'points' : 2}, # minimum requirement is 5 connected roads
+    largestArmy={'requirement': 3, 'points' : 2}, # minimum requirement is 3 knights
+    constructionCosts={
         'village' : {'wood' : 1, 'sheep' : 1, 'wheat' : 1, 'brick' : 1},
         'city' : {'wheat' : 2, 'ore' : 3},
         'road' : {'wood' : 1, 'brick' : 1},
         'development' : {'sheep' : 1, 'wheat' : 1, 'ore' : 1}
-    }
+    },
+    initialResourceUsage={'wood' : 0, 'sheep' : 0, 'wheat' : 0, 'brick' : 0, 'ore' : 0},
+    developmentCards=['k' for n in range(14)] + ['v' for n in range(5)] + ['i' for n in range(6)]
+    ):
+        
+        self.victoryPointCondition = victoryPointCondition
+        self.villageSettlement = villageSettlement
+        self.citySettlement = citySettlement
+        
+        self.startVillages = startVillages
+        self.startCities = startCities
+        self.startRoads = startRoads
+        self.startDevCards = startDevCards
+        self.maxVillages = maxVillages
+        self.maxCities  = maxCities
+        self.maxRoads = maxRoads
 
-    initialResourceUsage = {'wood' : 0, 'sheep' : 0, 'wheat' : 0, 'brick' : 0, 'ore' : 0}
-    developmentCards = ['k' for n in range(14)] + ['v' for n in range(5)] + ['i' for n in range(6)]
+        self.villageSpacingRequirement = villageSpacingRequirement
+
+        self.longestRoad = longestRoad
+        self.largestArmy = largestArmy
+
+        self.constructionCosts = constructionCosts
+
+        self.initialResourceUsage = initialResourceUsage
+        self.developmentCards = developmentCards
 
 
 
 class Player:
 
-    def __init__(self, resourceCards, villages, availableVillages, cities, availableCities, roads, availableRoads, devCards, availableDevCards, longestRoad, largestArmy):
+    def __init__(
+    self,
+    resourceCards,
+    villages,
+    availableVillages,
+    cities,
+    availableCities,
+    roads,
+    availableRoads,
+    devCards,
+    availableDevCards,
+    longestRoad=False,
+    largestArmy=False
+    ):
+
         self.resourceCards = resourceCards
         self.villages = villages
         self.availableVillages = availableVillages
@@ -108,7 +141,8 @@ def PlayerScore(player, ledger):
         (player.villages * ledger.villageSettlement) +
         (player.cities * ledger.citySettlement) +
         (player.longestRoad * ledger.longestRoad['points']) + 
-        (player.largestArmy * ledger.largestArmy['points'])
+        (player.largestArmy * ledger.largestArmy['points']) + 
+        (player.devCards.count('v'))
     )
     return playerScore
 
@@ -178,8 +212,9 @@ def SetSpecialCard(player, ledger):
 
 
 
-numberOfSimulations = 10000
+numberOfSimulations = 100000
 simulatedGames = {}
+GameLedger = Ledger()
 
 with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') as pbar:
 
@@ -187,58 +222,56 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
         
         p1DecisionTree = []
         p1 = Player(
-            Ledger.initialResourceUsage,
-            Ledger.startVillages,
-            Ledger.maxVillages - Ledger.startVillages,
-            Ledger.startCities,
-            Ledger.maxCities - Ledger.startCities,
-            Ledger.startRoads,
-            Ledger.maxRoads - Ledger.startRoads,
-            Ledger.startDevCards,
-            Ledger.developmentCards,
-            False,
-            False
+            GameLedger.initialResourceUsage,
+            GameLedger.startVillages,
+            GameLedger.maxVillages,
+            GameLedger.startCities,
+            GameLedger.maxCities,
+            GameLedger.startRoads,
+            GameLedger.maxRoads,
+            GameLedger.startDevCards,
+            ['k' for n in range(14)] + ['v' for n in range(5)] + ['i' for n in range(6)]
             )
 
         
-        while VictoryCondition(p1, Ledger) == False:
+        while VictoryCondition(p1, GameLedger) == False:
 
             possibleChoices = [c for c in range(1,4) if
-                c == 1 and p1.availableVillages > 0 and p1.availableRoads >= Ledger.villageSpacingRequirement
+                c == 1 and p1.availableVillages > 0 and p1.availableRoads >= GameLedger.villageSpacingRequirement
                 or c == 2 and p1.availableCities > 0 and p1.villages > 0
                 or c == 3 and len(p1.availableDevCards) > 0
                 ]
             randomDecision = choice(possibleChoices)
-            SetSpecialCard(p1, Ledger)
+            SetSpecialCard(p1, GameLedger)
             p1DecisionTree.append(randomDecision)
 
             # VILLAGE
             if randomDecision == 1:
                 # VILLAGE AFTER BUILDING 1 ROAD
-                if p1.roads > Ledger.villageSpacingRequirement and p1.roads <= (Ledger.villageSpacingRequirement * 2):
-                    BuildRoad(p1, Ledger)
-                    BuildVillage(p1, Ledger)
+                if p1.roads > GameLedger.villageSpacingRequirement and p1.roads <= (GameLedger.villageSpacingRequirement * GameLedger.startVillages):
+                    BuildRoad(p1, GameLedger)
+                    BuildVillage(p1, GameLedger)
             
                 # VILLAGE AFTER BUILDING 2 ROADS
                 else:
-                    for r in range(0, Ledger.villageSpacingRequirement):
-                        BuildRoad(p1, Ledger)
+                    for r in range(0, GameLedger.villageSpacingRequirement):
+                        BuildRoad(p1, GameLedger)
 
-                    BuildVillage(p1, Ledger)
+                    BuildVillage(p1, GameLedger)
 
             # CITY
             elif randomDecision == 2:
-                BuildCity(p1, Ledger)
+                BuildCity(p1, GameLedger)
 
             # DEVCARD
             elif randomDecision == 3:
-                BuyDevCard(p1, Ledger)
+                BuyDevCard(p1, GameLedger)
 
             # COULD NOT BUILD MORE VICTORY POINTS
             else:
                 print('something went wrong XD')
 
-                if p1.availableRoads < Ledger.villageSpacingRequirement:
+                if p1.availableRoads < GameLedger.villageSpacingRequirement:
                     print('Not enough roads available')
                 elif p1.availableVillages < 1 and p1.availableCities < 1:
                     print('No available villages or cities')
@@ -255,7 +288,7 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
 
         simulatedGames[s] = {
             'decisionTree' : p1DecisionTree,
-            'victoryPoints' : PlayerScore(p1, Ledger),
+            'victoryPoints' : PlayerScore(p1, GameLedger),
             'cardsToVictory' : sum(p1.resourceCards.values()),
             'spentResources' : p1.resourceCards,
             'villages' : p1.villages,
@@ -276,7 +309,6 @@ with tqdm(total=numberOfSimulations, desc='Simulating random Catan strategies') 
 
 sorted_tuples = sorted(simulatedGames.items(), key=lambda x: operator.getitem(x[1], 'cardsToVictory'))
 orderedSimulations = dict(s for s in sorted_tuples)   
-
 
 
 plt.scatter([s for s in simulatedGames], [simulatedGames[s]['cardsToVictory'] for s in simulatedGames], color="blue", alpha=0.5)
