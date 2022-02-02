@@ -9,6 +9,7 @@ guess = []
 
 # kalle funksjon etter spillet er over for å velge nytt ord til hvert spill
 def generate_word(word):
+    os.system('cls' if os.name == 'nt' else 'clear')
     word_hidden = ""
     for w in word:
         word_hidden += "-"
@@ -53,11 +54,12 @@ generate_word(current_word)
 while game_playing == "yes" or game_playing == "y":
 
     if check_guess(str(input("Guess a single letter:")), current_word):
+        print("The word was: ", current_word)
         game_playing = input("Game is over.Type (y/yes) to play again, or any other letter to exit.")
 
         if game_playing == "yes" or game_playing == "y":
             guess = []
             current_word = selection[random.randint(0,len(selection)-1)]
             generate_word(current_word)
-        else:    
+        else:
             exit()
