@@ -1,4 +1,5 @@
 import random
+import os
 
 game_playing = "yes"
 game_over = False
@@ -39,6 +40,7 @@ def check_guess(letter, word):
             if w in guess:
                 word_hidden += w
             if len(word_hidden) == len(word):
+                os.system('cls' if os.name == 'nt' else 'clear')
                 print("Welcome to hangman.", "\nThe current word is: ", word_hidden, "\nYour guesses:", guess, "\nGuesses left:", 10-(len(guess)))
                 break
 
