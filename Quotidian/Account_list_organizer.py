@@ -1,34 +1,71 @@
 import json
+from statistics import mode
+import sys
+import os
 
-email_default = input("Mail you'd like to organize for: ")
-text_file = 'mail_account_list.txt' # make this an input variable that adds '.txt' at the end
-json_file = 'json_account_list.json' # make this an input variable that adds '.json' at the end
-file_location = 'C:\\Users\\willi\\Documents\\Python\\Project_Files\\'
+def OrganizeEmailAccounts():
+    '''
+    Helps you organize the internet accounts you have created with your email account(s) to a json file 
+    '''
+    cwd = os.getcwd()
+    filename = "//" + sys.argv[1]
+    
+    existingFile = False
+    # checks if file exists
+    if os.path.exists(cwd + filename):
+        existingFile = True
 
-with open(file_location + text_file, mode='r', newline='') as f:
-    c_list = {}
-    for line in f:
-        print('Website: ', line.strip('\r\n'))
-        w = line.strip('\r\n')
-        c = input('Classification: ')
-        a = input('Attached account: ')
 
-# Hotkey classifications that make classifying quicker
-        if c.lower() == 'd':
-            c = 'delete'
-        if c.lower() == 'k':
-            c = 'keep'
+    with open(cwd + filename, mode='r+') as file:
+        classificationList = {}
+        
+        # opens json file and fills classificationList with existing entries        
+        if existingFile and len([row for row in file]) > 0:
+            print("Currently does not support json loading")
+            
+        emailInput = input("Please enter an email to link to website accounts:\n")
+        classificationList[emailInput] = {} 
+        userInput = ""
 
-# Hotkey for account if it's the same as your email
-        if a.lower() == 'm' or a.lower() == 'h' or a.lower() == 'e':
-            a = email_default
+        while userInput.lower() != "exit":
 
-# Checks if the classification exist. Then it either creates a new json object or appends an existing classification object
-# NB problem that needs to be fixed. Json list begins with two elements without brackets, making it awkward to use it
-        if c in c_list:
-            c_list[c].append([w, a])
-        else:
-            c_list[c] = [w, a]
+            # add limit to number of elements printed in interface
 
-with open(file_location + json_file, mode='w') as j:
-    json.dump(c_list, j)
+            # The user interface presented in console
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print("Current accounts in list by email:")
+
+            for email in classificationList.keys():
+                print(email + ":")
+                for website in classificationList[email]:
+                    print("   " + website)
+
+            userInput = input("Write a website where '" + emailInput + "' was used to create an account, 'exit' to quit this program or 'finished' to write list to json:\n")
+            
+            # verifies user inputs
+            if userInput.lower() == "exit":
+                sys.exit()
+            if userInput.lower() == "finished":
+                break
+            
+            classificationInput = input("Please classify this account. (Type 'k' for 'keep', 'd' for 'delete'):\n")
+            while classificationInput == "" or classificationInput.lower() not in ["k", "keep", "d", "delete"]:
+                classificationInput = input("Please enter a valid classification. (Type 'k' for 'keep', 'd' for 'delete'):\n")
+
+            # ads the valid inputs to the list
+            classificationList[emailInput][userInput] = classificationInput
+
+        # when finished script continues here
+        file.write(json.dumps(classificationList))
+
+
+def main():
+    OrganizeEmailAccounts()
+
+if __name__ == "__main__":
+    #main()
+
+    # version that only accepts existing file
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".json"):
+       main()
+    
