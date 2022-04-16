@@ -21,7 +21,7 @@ with open(file_location + json_file, mode='r') as j:
 
 # NB have not tested this part yet
     done = input('Finished and want to delete the list? [y/n]')
-    if done.lower() = 'y':
+    if done.lower() == 'y':
         os.remove(file_location + json_file)
         print('Deleted')
     else:
