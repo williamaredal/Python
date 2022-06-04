@@ -1,20 +1,37 @@
-import random
 import enchant
 import os
 
-def DisplayWord(word):
-    word_hidden = ""
-    for w in word:
-        if w == " ":
-            word_hidden += " "
-        
-        else:
-            word_hidden += "-"
+def DisplayWord(p1Word, p1Guesses, p2Word, p2Guesses):
+    p1HiddenWord = ""
+    p2HiddenWord = ""
 
-    # refreshes terminal
+    for word in p1Word:
+        for letter in word:
+            if letter in p1Guesses:
+                p1HiddenWord += letter
+
+            else:
+                p1HiddenWord += "_"
+
+        p1HiddenWord += " "
+
+    for word in p2Word:
+        for letter in word:
+            if letter in p2Guesses:
+                p2HiddenWord += letter
+
+            else:
+                p2HiddenWord += "_"
+
+        p2HiddenWord += " "
+
+    # refreshes terminal to show new state of game
     os.system('cls' if os.name == 'nt' else 'clear')
-    print("Welcome to hangman.")
-    print("The current word is: ", word_hidden)
+    print("Welcome to 2 player hangman.\n")
+    print("Word to guess for Player 1: ", p2HiddenWord)
+    print("Word to guess for Player 2: ", p1HiddenWord, "\n")
+    print("Player 1 guesses: ", p1Guesses)
+    print("Player 2 guesses: ", p2Guesses, "\n")
 
 
 
@@ -23,7 +40,7 @@ def GameLoop():
     hangmanWorld = {}
     gameOver = False
 
-    # players enter valid words for their opponents to guess
+    # players enter valid words for their opponents to guess, and initializes game variables
     p1Word = input("Player 1, please enter a valid word for Player 2 to guess: ")
     while englishDictionary.check(p1Word) == False:
         p1Word = input("Player 1, please enter a valid word for Player 2 to guess: ")
@@ -33,17 +50,49 @@ def GameLoop():
         p2Word = input("Player 2, please enter a valid word for Player 1 to guess: ")
     
     hangmanWorld["p1Word"] = p1Word
-    hangmanWorld["p1Guesses"] = []
+    hangmanWorld["p1Chars"] = set(p1Word)
+    hangmanWorld["p1Guesses"] = set()
     hangmanWorld["p2Word"] = p2Word
-    hangmanWorld["p2Guesses"] = []
-
+    hangmanWorld["p2Chars"] = set(p2Word)
+    hangmanWorld["p2Guesses"] = set()
 
     # game loop begins
     while gameOver == False:
+        # players enter valid chars as their guesses
         p1Letter = input("Player 1, please enter a single letter: ")
-        p2Letter = input("Player 2, please enter a single letter: ")
+        while len(p1Letter) != 1 or p1Letter.isalpha() == False or p1Letter in hangmanWorld["p1Guesses"]:
+            p1Letter = input("Player 1, please enter a single letter: ")
 
-        hangmanWorld["p1Guesses"].append(p1Letter)
-        hangmanWorld["p2Guesses"].append(p2Letter)
+        p2Letter = input("Player 2, please enter a single letter: ")
+        while len(p2Letter) != 1 or p2Letter.isalpha() == False or p2Letter in hangmanWorld["p2Guesses"]:
+            p2Letter = input("Player 2, please enter a single letter: ")
+
+        # players enter valid words as their guesses
+        hangmanWorld["p1Guesses"].add(p1Letter)
+        hangmanWorld["p2Guesses"].add(p2Letter)
+
+        # checks if the word set by p1 has been guessed p2 and vice versa 
+        p1Victory = hangmanWorld["p1Guesses"].issuperset(hangmanWorld["p2Chars"])
+        p2Victory = hangmanWorld["p2Guesses"].issuperset(hangmanWorld["p1Chars"])
+        if p1Victory and p2Victory:
+            print("The game is a draw. Nobody is hanged today...")
+            gameOver = True
+
+        elif p1Victory:
+            print("\n\nPlayer 1 wins!")
+            print("Dun dun DUN! Player 2 is sent to the gallows...")
+            print("The word player 2 chose was: ", hangmanWorld["p1Word"])
+            gameOver = True
+        
+        elif p2Victory:
+            print("\n\nPlayer 2 wins!")
+            print("Dun dun DUN! Player 1 is sent to the gallows...")
+            print("The word player 1 chose was: ", hangmanWorld["p2Word"])
+            gameOver = True
+        
+        else:
+            DisplayWord(hangmanWorld["p1Word"], hangmanWorld["p1Guesses"],  hangmanWorld["p2Word"], hangmanWorld["p2Guesses"])        
 
         
+
+GameLoop()
