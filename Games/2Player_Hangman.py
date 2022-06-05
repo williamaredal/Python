@@ -5,7 +5,8 @@ import os
 def IntroScreen():
     os.system('cls' if os.name == 'nt' else 'clear')
     print("Welcome to 2 player hangman.\n")
-    print("Your inputs will be hidden from your opponent, but fear not! You are indeed typing.\n\n")
+    print("Your inputs will be hidden from your opponent, but fear not! You are indeed typing.")
+    print("The first player to guess the word set by your opponent wins!\n\n")
 
 
 def GameScreen(p1Word, p1Guesses, p2Word, p2Guesses):
