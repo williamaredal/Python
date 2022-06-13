@@ -54,6 +54,14 @@ def VictoryScreen(playerN, players, word):
     print("The word given by player", opponents[0], "was: ", word)
 
 
+def DrawScreen(players, words):
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print("The game is a draw. Nobody is hanged today...\n")
+
+    for player, word in zip(players, words):
+        print("The word given by player", player, "was: ", word)
+
+
 def GameLoop():
     englishDictionary = enchant.Dict("en_US")
     hangmanWorld = {}
@@ -99,7 +107,9 @@ def GameLoop():
         p1Victory = hangmanWorld["p1Guesses"].issuperset(hangmanWorld["p2Chars"])
         p2Victory = hangmanWorld["p2Guesses"].issuperset(hangmanWorld["p1Chars"])
         if p1Victory and p2Victory:
-            print("The game is a draw. Nobody is hanged today...")
+            words = [hangmanWorld["p1Word"], hangmanWorld["p2Word"]]
+
+            DrawScreen(hangmanWorld["players"], words)
             gameOver = True
 
         elif p1Victory:
