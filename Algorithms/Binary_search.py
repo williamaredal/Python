@@ -1,3 +1,7 @@
+# This search algorithm has a time complexity of O(log2(n)) due to: 
+# - The algorithm divides the sorted list elements into halves, and pivots to left/right based on if the middle element is lower/higher
+#   than the desired element. This process is repeated until the desired element is found, or concluded it's not in the list. 
+#   The halving of the list thus reduces the number of checks in it's worst case.
 import math
 
 def Binary_Search(element_list, desired_element):
