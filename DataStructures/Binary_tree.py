@@ -13,8 +13,31 @@ class BinaryTree:
 
     def insert(self, number):
         # checks which leaf node (left/right) to insert number. Left if less than current node value, right if bigger
-        return None
+        parent_node = self.root
 
-    def search(self, numeber):
+        # if tree is empty, insert number at root node
+        if  parent_node.data == None:
+            parent_node.data = number
+            return
+
+        while True:
+            # should insert number left if less than parent node
+            if number < parent_node.data:
+                if parent_node.left_branch == None:
+                    parent_node.left_branch = Node(data=number)
+                    return
+                # moves to next node on left side if it's not empty
+                parent_node = parent_node.left_branch
+
+        # should insert number right if bigger than parent node
+            else:
+                if parent_node.right_branch == None:
+                    parent_node.right_branch = Node(data=number)
+                    return
+                # moves to next node on right side if it's not empty
+                parent_node = parent_node.right_branch
+
+
+    def search(self, number):
         # navigates the tree using the same rules as when inserting
         return None
